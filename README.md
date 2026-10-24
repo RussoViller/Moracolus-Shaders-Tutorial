@@ -4,7 +4,7 @@ Official community documentation for creating native shaders for Moracolus and a
 
 Moracolus is a client-side Minecraft Java Edition mod with its own shader-pack system, designed with portability across desktop computers and Android devices in mind. This guide covers the native pack format, OptiFine/Iris compatibility, GLSL, rendering backends, optimization, debugging, and automatic quality presets.
 
-- **Documentation version:** 1.6.0
+- **Documentation Mod version:** 1.6.0+
 - **Mod author:** RussoViller
 - **Mod license:** [RVCL-1.0](https://github.com/RussoViller/russostyle-saves/blob/main/RVCL-1.0.md)
 
