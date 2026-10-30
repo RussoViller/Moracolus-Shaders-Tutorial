@@ -6,7 +6,7 @@ Moracolus is a client-side Minecraft Java Edition mod with its own shader-pack s
 
 - **Documentation Mod version:** 1.6.5
 - **Mod author:** RussoViller
-- **Mod license:** [RVCL-1.0](https://github.com/RussoViller/russostyle-saves/blob/main/RVCL-1.0.md)
+- **Mod license:** [RVCL-2.0](https://github.com/RussoViller/russostyle-saves/blob/main/RVCL-2.0.md)
 
 > This guide is updated for Moracolus 1.6.5 and the builds for Minecraft 1.21.1, 1.21.11, 26.2, and 26.3. The pack format is shared by all four builds, but Minecraft's rendering internals are not: 1.21.1 and 1.21.11 only have OpenGL, while 26.2 and 26.3 can run on OpenGL or Vulkan and compile shaders through Minecraft's own rendering layer. Section 8 explains exactly what changes for shader authors. Treat backend-specific behavior as build-dependent and test the exact target build; dependency version ranges alone do not guarantee support.
 
