@@ -6,18 +6,19 @@ Moracolus is a client-side Minecraft Java Edition mod with its own shader-pack s
 
 - **Documentation Mod version:** 1.6.5
 - **Mod author:** RussoViller
-- **Mod license:** [RVCL-2.0](https://github.com/RussoViller/russostyle-saves/blob/main/RVCL-2.0.md)
+- **Mod license:** [RVCL-1.0](https://github.com/RussoViller/russostyle-saves/blob/main/RVCL-1.0.md)
 
 > This guide is updated for Moracolus 1.6.5 and the builds for Minecraft 1.21.1, 1.21.11, 26.2, and 26.3. The pack format is shared by all four builds, but Minecraft's rendering internals are not: 1.21.1 and 1.21.11 only have OpenGL, while 26.2 and 26.3 can run on OpenGL or Vulkan and compile shaders through Minecraft's own rendering layer. Section 8 explains exactly what changes for shader authors. Treat backend-specific behavior as build-dependent and test the exact target build; dependency version ranges alone do not guarantee support.
 
 ### What is new in 1.6.5
 
-- **Lighting library** (`#include "moracolus:lighting.glsl"`): soft sun/moon shading, contact shadows, sun/moon light rays, sky reflections and screen-space reflections, all controlled by three global settings in the **Hardware** tab and adapted automatically for phones. See [Section 13](#13-lighting-library-shading-light-rays-and-reflections).
+- **Lighting library** (`#include "moracolus:lighting.glsl"`): soft sun/moon shading, screen-space cast shadows (up to 48 blocks long), sun/moon light rays, sky reflections and screen-space reflections, all controlled by three global settings in the **Hardware** tab and adapted automatically for phones. See [Section 13](#13-lighting-library-shading-light-rays-and-reflections).
 - **New defines and conditions** for those settings (`MORA_SHADOW_QUALITY`, `MORA_LIGHT_RAYS_QUALITY`, `MORA_REFLECTION_QUALITY`, `MORA_SHADOWS`, `MORA_LIGHT_RAYS`, `MORA_REFLECTIONS` and related step counts).
 - **Output guard**: NaN values written by post-processing passes are replaced with 0 and infinities are clamped, so one invalid pixel can no longer spread through history targets and turn the screen black (Section 4.7).
 - **1.21.11 fix**: depth (`tex_depth`, `depthtex0`) was read as 0 on OpenGL ES/MobileGlues, which removed clouds and broke depth-based lighting (Section 8.4).
 - **26.3 fixes for OpenGL on desktop GPUs**: black-output recovery that clears render targets before disabling post-processing, automatic `location` for unmatched fragment inputs, and a startup log line describing the graphics backend (Section 8.5).
 - **Moracolus Lite 1.1.0**: the built-in pack gained a **Lighting** screen that uses the lighting library.
+- **Quick shader list (L)**: press **L** while playing to open a small panel with only the shader packs, on top of the game, without pausing it. Tap a pack to switch to it or tap the first entry to turn shaders off.
 
 ### Supported build matrix
 
@@ -83,6 +84,7 @@ Default controls (they may be remapped in **Options → Controls**):
 - **O:** open the Moracolus menu.
 - **R:** reload shader packs from disk.
 - **K:** toggle shaders on or off.
+- **L:** open the quick shader list while playing (only inside a world). The game is not paused; tap a pack to switch, tap outside the panel or press **L**/**Esc** to close.
 
 Useful paths:
 
@@ -670,13 +672,15 @@ Moracolus 1.6.5 ships a GLSL library, `moracolus:lighting.glsl`, and three globa
 
 | Setting | Levels | Default | Config key |
 |---|---|---|---|
-| Shading | Off, Super light, Light, Medium, Heavy, Ultra realistic | Light (Super light on low-tier phones at first run) | `shadowQuality` 0–5 |
+| Shading | Off, Super simple, Super light, Light, Medium, Heavy, Ultra realistic | Light (Super light on low-tier phones at first run) | `shadowQuality` 0–6 |
 | Light rays | Off, Light, Medium, High | Light | `lightRaysQuality` 0–3 |
 | Reflections | Off, Simple, Medium, Advanced, Extreme | Simple | `reflectionQuality` 0–4 |
 
 Changing a setting marks the menu as modified; press **Apply** to recompile the pack with the new defines.
 
-All effects are screen-space: they use the depth buffer of the current frame. Moracolus does not render shadow maps, so anything outside the screen cannot cast a shadow or appear in a reflection. This is what keeps the library cheap enough for phones.
+All effects are screen-space: they use the depth buffer of the current frame. Moracolus does not render shadow maps, so anything outside the screen cannot cast a shadow or appear in a reflection. From **Light** upwards, the shading traces rays towards the sun or moon through the depth buffer, so walls, trees, roofs and floating structures that are on screen cast soft shadows; higher levels trace longer rays with more steps. This is what keeps the library cheap enough for phones.
+
+Configs saved by the first 1.6.5 builds (six shading levels) are converted automatically to the new numbering.
 
 ### 13.2 Including it
 
@@ -693,14 +697,17 @@ All effects are screen-space: they use the depth buffer of the current frame. Mo
 
 Values in each cell are **PC / phone**. On phones with `MORA_TIER 0` and on Mali or PowerVR GPUs, step and sample counts are reduced by another 25% (minimum 2).
 
-| Shading level | `MORA_SHADOW_QUALITY` | `MORA_SHADOW_STEPS` | `MORA_SHADOW_SOFT` (rays) | `MORA_SHADOW_DISTANCE` (blocks) | `MORA_SHADOW_RANGE` (blocks) |
-|---|---|---|---|---|---|
-| Off | 0 | 0 | 0 | 0.00 | 0.00 |
-| Super light | 1 | 0 / 0 | 0 / 0 | 0.00 | 0.00 |
-| Light | 2 | 6 / 4 | 1 / 1 | 1.50 | 32 / 24 |
-| Medium | 3 | 12 / 8 | 1 / 1 | 3.00 | 48 / 32 |
-| Heavy | 4 | 20 / 12 | 2 / 1 | 6.00 | 64 / 48 |
-| Ultra realistic | 5 | 32 / 16 | 4 / 2 | 10.00 | 96 / 64 |
+| Shading level | `MORA_SHADOW_QUALITY` | `MORA_SHADOW_DIRECTIONAL` | `MORA_SHADOW_STEPS` | `MORA_SHADOW_SOFT` (rays) | `MORA_SHADOW_DISTANCE` (blocks) | `MORA_SHADOW_RANGE` (blocks) |
+|---|---|---|---|---|---|---|
+| Off | 0 | 0 | 0 | 0 | 0.00 | 0.00 |
+| Super simple (surfaces facing down are darker) | 1 | 0 | 0 | 0 | 0.00 | 0.00 |
+| Super light (sun/moon direction) | 2 | 1 | 0 | 0 | 0.00 | 0.00 |
+| Light | 3 | 1 | 8 / 6 | 1 / 1 | 6.00 | 32 / 24 |
+| Medium | 4 | 1 | 14 / 10 | 1 / 1 | 16.00 | 48 / 32 |
+| Heavy | 5 | 1 | 24 / 14 | 2 / 1 | 32.00 | 80 / 48 |
+| Ultra realistic | 6 | 1 | 40 / 20 | 3 / 2 | 48.00 | 128 / 64 |
+
+`MORA_SHADOW_DISTANCE` is the length of the shadow ray. Steps are spaced quadratically (dense near the surface, sparse far away), so short contact shadows stay sharp and long cast shadows stay soft.
 
 | Light rays level | `MORA_LIGHT_RAYS_QUALITY` | `MORA_LIGHT_RAYS_SAMPLES` |
 |---|---|---|
@@ -729,9 +736,10 @@ Values in each cell are **PC / phone**. On phones with `MORA_TIER 0` and on Mali
 | `vec3 moraViewToScreen(vec3 viewPos)` | Screen UV (xy) and depth (z) | |
 | `bool moraIsSky(float depth)` | `depth >= 0.9999` | |
 | `vec3 moraViewNormal(sampler2D depthTex, vec2 uv, vec3 viewPos)` | View-space normal reconstructed from depth | Uses derivatives at low quality and four depth reads at Medium shading or Advanced reflections and above. Call it outside non-uniform branches. |
-| `float moraSunShading(vec3 normal, vec3 lightDir, float skyLight)` | Soft directional shading factor (1 = lit) | Normal and light direction in the same space. `skyLight` 0–1 (for example `s.light.y` in the terrain stage). |
-| `float moraContactShadow(sampler2D depthTex, vec2 uv, vec3 viewPos, vec3 normal, float dither)` | Contact-shadow factor (1 = lit) | Screen-space march towards the sun/moon. 1.0 when `MORA_SHADOW_STEPS` is 0. |
-| `float moraShadow(sampler2D depthTex, vec2 uv, float depth)` | Combined shading factor (1 = lit) | Directional shading from reconstructed normals plus contact shadows, faded underground using the player's sky light. |
+| `float moraSunShading(vec3 normal, vec3 lightDir, float skyLight)` | Soft directional shading factor (1 = lit) | Wrapped lighting: faces turned away from the sun are at most about 45% darker, so both sides of a hill stay readable. Normal and light direction in the same space. `skyLight` 0–1 (for example `s.light.y` in the terrain stage). |
+| `float moraHemisphereShading(vec3 normal)` | 0.78–1.00 | Surfaces facing down are darker. Used by Super simple. |
+| `float moraContactShadow(sampler2D depthTex, vec2 uv, vec3 viewPos, vec3 normal, float dither)` | Cast-shadow factor (1 = lit) | Screen-space ray towards the sun/moon, `MORA_SHADOW_DISTANCE` blocks long. 1.0 when `MORA_SHADOW_STEPS` is 0. Pass a dither close to 0.5 (for example `0.5 + (moraDither(gl_FragCoord.xy) - 0.5) * 0.35`) for clean shadows without temporal filtering. |
+| `float moraShadow(sampler2D depthTex, vec2 uv, float depth)` | Combined shading factor (1 = lit) | Hemisphere shading (Super simple) or directional shading (Super light and up) from reconstructed normals, plus cast shadows from Light upwards, faded underground using the player's sky light. |
 | `vec3 moraLightRays(sampler2D depthTex, vec2 uv)` | Additive light-ray color | Radial sky-mask blur towards the sun or moon. Designed for a reduced-resolution pass. |
 | `vec3 moraSkyReflection(vec3 dirView)` | Sky color in a view direction | Uses sky color, fog color and a sun/moon highlight. |
 | `vec4 moraReflection(sampler2D sceneTex, sampler2D depthTex, vec2 uv, float depth, vec3 normal)` | rgb = reflection, a = confidence of the screen-space hit | Sky only at Simple; screen-space reflections from Medium. |
@@ -830,9 +838,9 @@ vec4 moraTerrainFragment(MoraSurface s) {
 
 ### 13.6 Cost and recommendations
 
-- **Super light** adds no texture reads in the terrain-stage approach and only the normal reconstruction in post-processing. It is the safe default for weak phones.
-- **Light** and **Medium** are designed for mid-range phones: 4–8 depth reads per pixel for contact shadows on phones.
-- **Heavy** and **Ultra realistic** are meant for PCs and high-end phones. Ultra realistic on a PC traces 4 rays of 32 steps (128 depth reads per pixel); run it at full resolution only on strong GPUs.
+- **Super simple** and **Super light** add no texture reads in the terrain-stage approach and only the normal reconstruction in post-processing. They are the safe choice for weak phones.
+- **Light** and **Medium** are designed for mid-range phones: 6–10 depth reads per pixel on phones.
+- **Heavy** and **Ultra realistic** are meant for PCs and high-end phones. Ultra realistic on a PC traces 3 rays of 40 steps (120 depth reads per pixel); run it at full resolution only on strong GPUs.
 - Light rays cost `MORA_LIGHT_RAYS_SAMPLES` depth reads per pixel of the pass that calls them; render them in a target with `scale` 0.25–0.50.
 - Reflections cost up to `MORA_REFLECTION_STEPS + MORA_REFLECTION_REFINE` depth reads, but only for the pixels where you call `moraReflection`.
 - Adreno and Mali are tile-based GPUs: keep rays in one small pass and do shading inside the final pass instead of adding more full-screen passes.
